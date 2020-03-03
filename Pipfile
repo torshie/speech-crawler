@@ -5,9 +5,9 @@ name = "pypi"
 
 [packages]
 youtube-dl = "*"
-python-levenshtein = "*"
 webvtt-py = "*"
 "path.py" = "*"
+requests = "*"
 
 [dev-packages]
 

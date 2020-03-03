@@ -12,8 +12,8 @@ import dal
 
 
 class ProgressManager:
-    NUM_SEARCH_RESULTS = 1
-    MAX_CHANNEL_SIZE = 5
+    NUM_SEARCH_RESULTS = 30
+    MAX_CHANNEL_SIZE = 100
 
     def __init__(self, database: dal.DataAccessLayer):
         self.__database = database
@@ -70,6 +70,8 @@ def parse_cmdline():
         help='A file containing initial search queries.')
     p.add_argument('--dry-run', action='store_true',
         help='Don\'t download the actual audio file, for debugging purposes.')
+    p.add_argument('--forced-align', action='store_true',
+        help='Run "forced alignment" post processing step.')
     return p.parse_args()
 
 
@@ -86,7 +88,7 @@ def build_youtube_options(cmdline):
         'subtitleslangs': [cmdline.lang],
         'subtitlesformat': 'ttml',
         'prefer_ffmpeg': True,
-        'outtmpl': f'{cmdline.dest}/intermediate/%(id)s.%(title)s.%(ext)s',
+        'outtmpl': f'{cmdline.dest}/intermediate/%(channel_id)s/%(id)s#%(title)s.%(ext)s',
         'youtube_include_dash_manifest': False,
         'socket_timeout': 10,
         'download_archive': f'{cmdline.dest}/downloaded.txt',
@@ -99,6 +101,8 @@ def build_youtube_options(cmdline):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     audio = '{}'
     exec_cmd = f'{sys.executable} {script_dir}/process.py {audio} --dest {cmdline.dest} --lang {cmdline.lang}'
+    if cmdline.forced_align:
+        exec_cmd += ' --forced-align'
     r['postprocessors'] = [
         {'key': 'FFmpegSubtitlesConvertor', 'format': 'vtt'},
         {'key': 'ExecAfterDownload', 'exec_cmd': exec_cmd}

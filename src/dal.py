@@ -8,9 +8,9 @@ class DataAccessLayer:
     STATUS_SOURCE_ERROR = 3
     STATUS_DONE = 5
 
-    STATUS_ALIGNED = 6
-    STATUS_BAD_CONTENT = 7
-    STATUS_GOOD_CONTENT = 8
+    STATUS_DOWNLOADED = 6
+    STATUS_SUBS_MISSING = 7
+    STATUS_INVALID_SUBS = 8
 
     def __init__(self, dbfile):
         if not os.path.isfile(dbfile) and not os.path.islink(dbfile):
@@ -74,10 +74,12 @@ class DataAccessLayer:
         cursor = self.__connection.cursor()
         try:
             cursor.execute('INSERT INTO video (video_id, channel_id, status) VALUES (?, ?, ?)',
-                [video_id, channel_id, self.STATUS_NEW])
+                [video_id, channel_id, self.STATUS_DOWNLOADED])
+            assert cursor.rowcount == 1
+            self.__connection.commit()
+            return True
         except sqlite3.IntegrityError:
-            pass
-        self.__connection.commit()
+            return False
 
     def fetch_new_videos(self):
         cursor = self.__connection.cursor()
@@ -88,6 +90,21 @@ class DataAccessLayer:
         cursor = self.__connection.cursor()
         cursor.execute('UPDATE video SET status = ? WHERE video_id = ?',
             [video_id, status])
+        assert cursor.rowcount == 1
+        self.__connection.commit()
+
+    def set_video_length(self, video_id, length):
+        cursor = self.__connection.cursor()
+        cursor.execute('UPDATE video SET length = ? WHERE video_id = ?',
+            [length, video_id])
+        assert cursor.rowcount == 1
+        self.__connection.commit()
+
+    def add_subtitle(self, video_id, content, start_time, end_time,
+            aligned=True):
+        cursor = self.__connection.cursor()
+        cursor.execute('INSERT INTO subtitle (video_id, content, aligned, start_time, end_time) VALUES (?, ?, ?, ?, ?)',
+            [video_id, content, start_time, end_time, 1 if aligned else 0])
         assert cursor.rowcount == 1
         self.__connection.commit()
 
@@ -128,8 +145,8 @@ class DataAccessLayer:
         cursor.execute("""CREATE TABLE subtitle (
             subtitle_id INTEGER PRIMARY KEY AUTOINCREMENT,
             video_id VARCHAR(255) NOT NULL,
-            status INT NOT NULL,
-            begin_time INT NOT NULL,
+            aligned INT NOT NULL,
+            start_time INT NOT NULL,
             end_time INT NOT NULL,
             content TEXT NOT NULL,
             create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

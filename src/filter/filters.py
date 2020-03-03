@@ -158,7 +158,7 @@ def load_and_filter(filename):
 def test():
     import sys
 
-    from youtube_helpers import load_all_subtitles
+    from .youtube_helpers import load_all_subtitles
 
     subtitles = load_all_subtitles(sys.argv[1])
     print(len(subtitles))
